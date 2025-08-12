@@ -1,0 +1,17 @@
+{
+  "name": "asterix-parser",
+  "version": "0.0.1",
+  "description": "JavaScript parsing library for the ASTERIX data format",
+  "main": "parser.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "ASTERIX"
+  ],
+  "author": "Geoff Sullivan",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.0.5"
+  }
+}
