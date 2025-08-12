@@ -30,6 +30,13 @@ build/
 dist/
 coverage/
 
+# Data
+data/
+obj/
+
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# IDE files
+.vscode/

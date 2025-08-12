@@ -377,24 +377,37 @@ function parseRecord(view, offset) {
     if (fsBits[i] !== 1) continue;
     const itemId = uap[i]; // may be undefined if FSPEC longer than our UAP
     if (!itemId) {
-      // Unknown bit position—raw eat until end? That’s unsafe. Store a flag and break.
+      // Unknown bit position—raw eat until end? That's unsafe. Store a flag and break.
       rawItems._excessFSPECBit = true;
       break;
     }
     const decoder = decMap[itemId];
     if (!decoder) {
-      // No decoder: best effort—assume 1-octet length prefixed? That’s not safe either.
-      // Instead, we can’t infer length without spec: capture the remaining bytes as raw
+      // No decoder: best effort—assume 1-octet length prefixed? That's not safe either.
+      // Instead, we can't infer length without spec: capture the remaining bytes as raw
       // but that would swallow subsequent items. Safer choice: mark unknown and stop to
       // avoid corrupt alignment.
       rawItems[itemId] = { note: "No decoder; parsing stopped to avoid misalignment." };
       // You can choose to break or continue. Breaking minimizes cascading errors.
       break;
     }
-    const { value, length } = decoder(view, cur);
-    items[itemId] = value;
-    cur += length;
-    if (cur > end) throw new Error(`Item ${itemId} overflowed record length`);
+    
+    // Check if we have enough bytes left before trying to decode
+    try {
+      const { value, length } = decoder(view, cur);
+      items[itemId] = value;
+      cur += length;
+      if (cur > end) {
+        // Instead of throwing, log the issue and stop parsing further items
+        rawItems._overflowItem = itemId;
+        cur = end; // Reset to end to avoid further processing
+        break;
+      }
+    } catch (err) {
+      // Handle any errors in decoders (like truncated data)
+      rawItems._errorItem = { itemId, error: err.message };
+      break;
+    }
   }
 
   // If remaining bytes exist (e.g., because not all FSPEC bits consumed), keep as raw tail
@@ -418,16 +431,18 @@ function parseRecord(view, offset) {
  * Parse an entire buffer containing 0..N ASTERIX records.
  * Returns array of records. Stops on first structural error.
  */
-function parseAsterixStream(buffer) {
+function *parseAsterixStream(buffer) {
   const view = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const records = [];
+
   let off = 0;
   while (off < view.length) {
     const { record, nextOffset } = parseRecord(view, off);
-    records.push(record);
+    yield record;
+
     off = nextOffset;
   }
-  return records;
+
+  return;
 }
 
 // ------------------------------ Example usage --------------------------------
