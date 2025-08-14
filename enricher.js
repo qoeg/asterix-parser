@@ -32,15 +32,15 @@ function rad2deg(r) { return r * 180/Math.PI; }
 
 /** geodetic -> ECEF */
 function geodeticToEcef(latDeg, lonDeg, hM) {
-  const { a, e2 } = WGS84;
+  const { a } = WGS84;
   const lat = deg2rad(latDeg);
   const lon = deg2rad(lonDeg);
   const sinLat = Math.sin(lat), cosLat = Math.cos(lat);
   const sinLon = Math.sin(lon), cosLon = Math.cos(lon);
-  const N = a / Math.sqrt(1 - e2()*sinLat*sinLat);
+  const N = a / Math.sqrt(1 - WGS84.e2()*sinLat*sinLat);
   const x = (N + hM) * cosLat * cosLon;
   const y = (N + hM) * cosLat * sinLon;
-  const z = (N*(1 - e2()) + hM) * sinLat;
+  const z = (N*(1 - WGS84.e2()) + hM) * sinLat;
   return { x, y, z };
 }
 
@@ -62,16 +62,16 @@ function enuToEcef(e, n, u, refLatDeg, refLonDeg, refAltM) {
 
 /** ECEF -> geodetic (iterative) */
 function ecefToGeodetic(x, y, z) {
-  const { a, e2 } = WGS84;
+  const { a } = WGS84;
   const b = WGS84.b();
   const ep2 = (a*a - b*b)/(b*b);
   const p = Math.hypot(x, y);
   const th = Math.atan2(a*z, b*p);
   const lon = Math.atan2(y, x);
   const sinTh = Math.sin(th), cosTh = Math.cos(th);
-  const lat = Math.atan2(z + ep2*b*sinTh*sinTh*sinTh, p - e2()*a*cosTh*cosTh*cosTh);
+  const lat = Math.atan2(z + ep2*b*sinTh*sinTh*sinTh, p - WGS84.e2()*a*cosTh*cosTh*cosTh);
   const sinLat = Math.sin(lat);
-  const N = a / Math.sqrt(1 - e2()*sinLat*sinLat);
+  const N = a / Math.sqrt(1 - WGS84.e2()*sinLat*sinLat);
   const h = p/Math.cos(lat) - N;
   return { latDeg: rad2deg(lat), lonDeg: rad2deg(lon), altM: h };
 }
